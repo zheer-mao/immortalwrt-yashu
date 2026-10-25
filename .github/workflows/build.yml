@@ -1,10 +1,3 @@
-# GitHub Actions 编译 ImmortalWrt（亚瑟 AX1800 Pro）——磁盘修复版
-# 用法：把本文件内容覆盖仓库里的 .github/workflows/build.yml（网页上编辑该文件、粘贴、提交到 main）
-# 改动说明：原版在“装依赖”那一步 apt update 就报 No space left on device。
-# 本版在清理前后都加 df -h（下次失败时一眼能看到还剩多少），并在 maximize-build-space
-# 之后再手动删一批 runner 自带的大件（swift/julia/chromium/hostedtoolcache/docker 镜像），
-# 再把 apt 换成脚本里更稳的 apt-get。
-
 name: Build ImmortalWrt for 亚瑟 AX1800 Pro
 
 on:
@@ -25,6 +18,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify checkout
+        run: |
+          pwd
+          ls -la
+          test -f .config && echo ".config OK" || echo ".config MISSING"
 
       - name: Check disk space (before cleanup)
         run: df -h
@@ -67,7 +66,7 @@ jobs:
 
       - name: Load custom config
         run: |
-          cp $CONFIG_FILE immortalwrt/.config
+          cp "$GITHUB_WORKSPACE/.config" immortalwrt/.config
           cd immortalwrt && make defconfig
 
       - name: Download packages
