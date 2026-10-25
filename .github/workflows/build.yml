@@ -1,6 +1,9 @@
-# GitHub Actions 编译 ImmortalWrt（亚瑟 AX1800 Pro）
-# 用法：把本文件放进仓库的 .github/workflows/ 目录，改名为 build.yml
-# 然后在仓库 Actions 页面点 Run workflow，跑完在 Artifacts 里下载固件
+# GitHub Actions 编译 ImmortalWrt（亚瑟 AX1800 Pro）——磁盘修复版
+# 用法：把本文件内容覆盖仓库里的 .github/workflows/build.yml（网页上编辑该文件、粘贴、提交到 main）
+# 改动说明：原版在“装依赖”那一步 apt update 就报 No space left on device。
+# 本版在清理前后都加 df -h（下次失败时一眼能看到还剩多少），并在 maximize-build-space
+# 之后再手动删一批 runner 自带的大件（swift/julia/chromium/hostedtoolcache/docker 镜像），
+# 再把 apt 换成脚本里更稳的 apt-get。
 
 name: Build ImmortalWrt for 亚瑟 AX1800 Pro
 
@@ -23,6 +26,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check disk space (before cleanup)
+        run: df -h
+
       - name: Free disk space
         uses: easimon/maximize-build-space@master
         with:
@@ -34,10 +40,19 @@ jobs:
           remove-codeql: 'true'
           remove-docker-images: 'true'
 
+      - name: Extra cleanup
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache \
+            /usr/share/swift /usr/local/julia* /usr/local/share/chromium \
+            /home/runner/.rustup /home/runner/.cargo
+          sudo docker image prune --all --force || true
+          sudo apt-get clean
+          df -h
+
       - name: Install build dependencies
         run: |
-          sudo apt update
-          sudo apt install -y build-essential clang flex bison g++ gawk \
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison g++ gawk \
             gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev \
             python3 rsync unzip zlib1g-dev file wget curl ccache
 
