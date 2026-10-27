@@ -1,31 +1,32 @@
-# ImmortalWrt 编译：京东云 亚瑟 AX1800 Pro
+# ImmortalWrt 纯净编译：京东云 亚瑟 AX1800 Pro
 
 本仓库用 GitHub Actions 自动编译 ImmortalWrt，机型是京东云无线宝 亚瑟 AX1800 Pro（`jdcloud_re-ss-01`，高通 IPQ60xx）。
 
-源码用 ImmortalWrt master 分支，已包含 odhcpd IPv6 漏洞（CVE-2026-53921）的修复，编出来的固件不用再担心这个漏洞。
+这是给朋友用的纯净官方版：只选设备 + LuCI，其他全部用官方默认。没有 argon 主题、adblock、nginx、中文包等额外东西，刷完是英文界面。
+
+源码用 ImmortalWrt master 分支，已包含 odhcpd IPv6 漏洞（CVE-2026-53921）的修复。
 
 ## 仓库里有什么
 
-- `.config`：编译配置。目标平台 Qualcommax / IPQ60xx / jdcloud_re_ss_01，已勾选 LuCI 网页界面及中文语言包、防火墙页面、软件包页面、dnsmasq-full。
-- `.github/workflows/build.yml`：GitHub Actions 工作流。跑在 ubuntu-22.04 上，自动拉源码、更新 feeds、加载 `.config`、编译、上传成品。
+- `.config`：编译配置。目标平台 qualcommax / ipq60xx / jdcloud_re-ss-01，只勾了 LuCI，其他用官方默认。
+- `.github/workflows/build.yml`：GitHub Actions 工作流。跑在 ubuntu-22.04 上，自动拉源码、更新 feeds、加载 `.config`、编译、上传成品到 Artifacts 和 Releases。
 
 ## 怎么编译
 
 1. 打开仓库的 **Actions** 页面，点左侧的 **Build ImmortalWrt for 亚瑟 AX1800 Pro**。
 2. 点 **Run workflow**，再点绿色的 **Run workflow** 按钮。
-3. 等它跑完。首次编译一般要 2~4 小时，中途可以在 Actions 页面点进去看进度和日志。
-4. 跑完后在当次运行页面的 **Artifacts** 里下载 `immortalwrt-jdcloud_re-ss-01`，解压后在 `bin/targets/qualcommax/ipq60xx/` 里找这两个文件：
+3. 等它跑完（约 1.5 小时），在当次运行页面的 **Artifacts** 里下载 `immortalwrt-jdcloud_re-ss-01`，或在 **Releases** 里下载，找这个文件：
    - `immortalwrt-qualcommax-ipq60xx-jdcloud_re-ss-01-squashfs-sysupgrade.bin`：正式固件
-   - `immortalwrt-qualcommax-ipq60xx-jdcloud_re-ss-01-initramfs-uImage.itb`：内存启动用的临时系统
 
 改了 `.config` 再推到 main 分支也会自动触发一次编译。
 
-## 刷机注意（重要）
+## 刷机
 
-- **不要用不死 uboot 的网页界面刷这个固件**：自编译和官方快照都没有 factory 包，那个界面只认 factory 包，会失败。
-- 正确路线：先刷好不死 uboot，进 uboot 控制台用 TFTP 引导 initramfs 进内存启动临时系统，再在临时系统里用 sysupgrade 写入闪存，**不要勾保留配置**。
-- 刷机前先备份 ART 分区（WiFi 校准数据），TTL 线必须用 1.8V 的。
+- 在现系统 LuCI 里：系统 → 备份与更新 → 上传 sysupgrade.bin，**不要勾选保留配置**（不同系统/不同配置，保留会出问题）。
+- 刷完网关是 192.168.1.1，首次登录没有密码（登录时设一个），电脑要重拿 IP（子网变了）。
+- 刷完是英文界面，要中文的话，WAN 通后 SSH 里跑：`apk add luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn`，装完在系统 → 语言与风格里选中文。
 
 ## 注意
 
-这是公开仓库，**不要往里面写宽带账号、WiFi 密码等敏感信息**。`.config` 里只有编译选项，没有任何账号密码。
+- 设备行必须用横杠原样（jdcloud_re-ss-01），改成下划线会被 defconfig 静默丢弃，默认编出 8devices_mango-dvk（不要刷错设备的文件）。
+- 这是公开仓库，**不要往里面写宽带账号、WiFi 密码等敏感信息**。
