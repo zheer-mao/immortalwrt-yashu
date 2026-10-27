@@ -1,17 +1,3 @@
-# GitHub Actions 编译 ImmortalWrt（亚瑟 AX1800 Pro）——磁盘修复版
-# 用法：把本文件内容覆盖仓库里的 .github/workflows/build.yml（网页上编辑该文件、粘贴、提交到 main）
-# 改动说明：原版在“装依赖”那一步 apt update 就报 No space left on device。
-# 本版在清理前后都加 df -h（下次失败时一眼能看到还剩多少），并在 maximize-build-space
-# 之后再手动删一批 runner 自带的大件（swift/julia/chromium/hostedtoolcache/docker 镜像），
-# 再把 apt 换成脚本里更稳的 apt-get。
-# 另修 Load custom config：用 $GITHUB_WORKSPACE 绝对路径取 .config，不再依赖当前目录；
-# 并在 Checkout 后加 Verify checkout 步骤，下次如果 .config 没检出来，第一时间就能看到。
-# 关键修复（2026-10-25 实测定位）：easimon/maximize-build-space 会把一个新卷挂载到
-# $GITHUB_WORKSPACE 上，挂载后之前检出的文件会被盖住、访问不到——官方 README 明确要求
-# 它必须作为第一步、在 actions/checkout 之前跑。原版先 Checkout 再清理，正是 .config
-# “消失”的原因。同时把 root-reserve-mb 从 2048 提到 8192，给 apt 留足根分区空间
-# （apt 装包走根分区，留太少会重现 No space left on device）。
-
 name: Build ImmortalWrt for 亚瑟 AX1800 Pro
 
 on:
@@ -87,6 +73,10 @@ jobs:
         working-directory: immortalwrt
         run: make download -j8
 
+      - name: 删除失效的 fullcone 补丁
+        working-directory: immortalwrt
+        run: rm -f package/network/config/firewall4/patches/001-firewall4-add-support-for-fullcone-nat.patch
+
       - name: Build firmware
         working-directory: immortalwrt
         run: |
@@ -97,3 +87,11 @@ jobs:
         with:
           name: immortalwrt-jdcloud_re-ss-01
           path: immortalwrt/bin/targets/qualcommax/ipq60xx/
+
+      - name: 发布到 Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number}}
+          name: 亚瑟精简版 build-${{ github.run_number}}
+          files: |
+            immortalwrt/bin/targets/qualcommax/ipq60xx/*.bin
