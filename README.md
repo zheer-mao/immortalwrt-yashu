@@ -10,6 +10,7 @@
 
 - `.config`：编译配置。目标平台 qualcommax / ipq60xx / jdcloud_re-ss-01，只勾了 LuCI，其他用官方默认。
 - `.github/workflows/build.yml`：GitHub Actions 工作流。跑在 ubuntu-22.04 上，自动拉源码、更新 feeds、加载 `.config`、编译、上传成品到 Artifacts 和 Releases。
+- `files/etc/uci-defaults/99-set-lan-ip`：首次开机把 LAN 网关设成 192.168.68.1 的脚本（见下面网关说明）。
 
 ## 怎么编译
 
@@ -23,8 +24,16 @@
 ## 刷机
 
 - 在现系统 LuCI 里：系统 → 备份与更新 → 上传 sysupgrade.bin，**不要勾选保留配置**（不同系统/不同配置，保留会出问题）。
-- 刷完网关是 192.168.1.1，首次登录没有密码（登录时设一个），电脑要重拿 IP（子网变了）。
+- 刷完网关是 192.168.68.1，首次登录没有密码（登录时设一个），电脑要重拿 IP（子网变了）。
 - 刷完是英文界面，要中文的话，WAN 通后 SSH 里跑：`apk add luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn`，装完在系统 → 语言与风格里选中文。
+
+## 网关说明
+
+这个纯净版不用官方默认网关 192.168.1.1，改成 192.168.68.1。
+
+- 实现方式：`files/etc/uci-defaults/99-set-lan-ip` 脚本，首次开机把 LAN 设成 192.168.68.1，执行完自动删除。
+- 前提：build.yml 里要有 Copy custom files 那一步，把 files/ 拷进固件，不然脚本进不去，刷完还是 192.168.1.1。
+- 刷完后想换网关：在 LuCI 网络 → 接口 → LAN 里改，或 SSH 里 uci 改，重启还在。
 
 ## 注意
 
