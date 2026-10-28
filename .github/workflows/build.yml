@@ -69,6 +69,12 @@ jobs:
           cp "$GITHUB_WORKSPACE/.config" immortalwrt/.config
           cd immortalwrt && make defconfig
 
+      - name: Copy custom files
+        run: |
+          mkdir -p immortalwrt/files
+          cp -r "$GITHUB_WORKSPACE/files/." immortalwrt/files/
+          chmod +x immortalwrt/files/etc/uci-defaults/99-set-lan-ip
+
       - name: Download packages
         working-directory: immortalwrt
         run: make download -j8
@@ -91,7 +97,7 @@ jobs:
       - name: 发布到 Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number}}
-          name: 亚瑟精简版 build-${{ github.run_number}}
+          tag_name: build-${{ github.run_number }}
+          name: 亚瑟精简版 build-${{ github.run_number }}
           files: |
             immortalwrt/bin/targets/qualcommax/ipq60xx/*.bin
